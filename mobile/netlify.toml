@@ -4,6 +4,7 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  EXPO_PUBLIC_API_URL = "https://transportmobileapp-b45c.onbelmo.uk/api"
 
 # SPA routing — React Navigation web needs index.html for deep links
 [[redirects]]
