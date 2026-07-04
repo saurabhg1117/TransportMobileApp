@@ -1,0 +1,28 @@
+# Always-on TPSMS stack: API + web app on one server.
+# Google Sheets stays in the cloud (always available).
+#
+# Setup:
+#   1. Copy backend/.env to the server (with GOOGLE_* + JWT_SECRET)
+#   2. docker compose up -d --build
+#   3. Open http://YOUR-SERVER-IP
+
+services:
+  api:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      NODE_ENV: production
+      PORT: "5000"
+    restart: always
+    expose:
+      - "5000"
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.web
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+    restart: always

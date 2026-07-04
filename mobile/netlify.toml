@@ -1,0 +1,12 @@
+[build]
+  command = "npm install && npx expo export --platform web"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# SPA routing — React Navigation web needs index.html for deep links
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

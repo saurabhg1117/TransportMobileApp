@@ -1,0 +1,81 @@
+/**
+ * Defines the logical "tables" of the data store. Each table maps to a sheet
+ * (tab) in the Google Sheets workbook, or to a key in the local JSON fallback.
+ * The column order here is also the header-row order created in a fresh sheet.
+ */
+
+export type TableName = 'Users' | 'TransporterSettings' | 'PaymentSlips' | 'AuditLogs';
+
+export const TABLES: Record<TableName, readonly string[]> = {
+  Users: [
+    'id',
+    'name',
+    'username',
+    'passwordHash',
+    'role',
+    'status',
+    'mobile',
+    'createdAt',
+    'updatedAt',
+  ],
+  TransporterSettings: [
+    'id',
+    'companyName',
+    'ownerName',
+    'mobile',
+    'alternateMobile',
+    'gst',
+    'pan',
+    'officeAddress',
+    'city',
+    'district',
+    'state',
+    'pin',
+    'logoUrl',
+    'headerText',
+    'footerText',
+    'slipPrefix',
+    'paperSize',
+    'autoNumber',
+    'slipCounter',
+    'terms',
+    'mandatorySlipFields',
+    'updatedAt',
+  ],
+  PaymentSlips: [
+    'id',
+    'slipNo',
+    'date',
+    'driverId',
+    'createdById',
+    'truckNo',
+    'grNo',
+    'invoiceNo',
+    'doNo',
+    'consignor',
+    'consignee',
+    'fromLocation',
+    'toLocation',
+    'driverName',
+    'driverAddress',
+    'ownerName',
+    'ownerAddress',
+    'bags',
+    'weight',
+    'rate',
+    'cash',
+    'diesel',
+    'bank',
+    'commission',
+    'missing',
+    'freight',
+    'advance',
+    'balance',
+    'status',
+    'createdAt',
+    'updatedAt',
+  ],
+  AuditLogs: ['id', 'userId', 'username', 'action', 'entity', 'entityId', 'details', 'createdAt'],
+} as const;
+
+export const TABLE_NAMES = Object.keys(TABLES) as TableName[];

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+*.log
+
+# Local JSON fallback data store (contains hashed credentials / slip data)
+data/
+
+# Google service account key files
+*service-account*.json
+credentials*.json

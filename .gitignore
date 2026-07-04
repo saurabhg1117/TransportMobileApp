@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+!*.example
+!*.env.example
+
+# Build output
+dist/
+backend/dist/
+mobile/dist/
+mobile/web-build/
+.expo/
+
+# Local data & keys
+backend/data/
+*service-account*.json
+credentials*.json
+*.pem
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/

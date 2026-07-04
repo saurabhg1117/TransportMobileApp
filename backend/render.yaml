@@ -1,0 +1,28 @@
+# Render blueprint — deploy backend from GitHub.
+# Dashboard: New > Blueprint > connect repo, or New > Web Service > rootDir: backend
+#
+# After deploy, set GOOGLE_* env vars in the Render dashboard (Environment tab).
+
+services:
+  - type: web
+    name: tpsms-api
+    runtime: node
+    region: singapore
+    plan: starter
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 30d
+      - key: GOOGLE_SHEET_ID
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_EMAIL
+        sync: false
+      - key: GOOGLE_PRIVATE_KEY
+        sync: false

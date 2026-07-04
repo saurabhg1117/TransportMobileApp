@@ -1,0 +1,30 @@
+# Fly.io — always-on backend (min 1 machine, ~$5/mo).
+# Deploy: fly launch --config backend/fly.toml (from backend folder)
+# Mobile web: still use Netlify (always-on CDN) pointing at Fly API URL.
+
+app = 'tpsms-api'
+primary_region = 'bom'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  NODE_ENV = 'production'
+  PORT = '5000'
+
+[http_service]
+  internal_port = 5000
+  force_https = true
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    path = '/health'
+    interval = '30s'
+    timeout = '5s'
+
+[[vm]]
+  memory = '256mb'
+  cpu_kind = 'shared'
+  cpus = 1
