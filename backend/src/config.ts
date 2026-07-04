@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { normalizePrivateKey } from './lib/normalizePrivateKey.js';
 
 dotenv.config();
 
@@ -24,8 +25,8 @@ export const config = {
   google: {
     sheetId: env['GOOGLE_SHEET_ID'] || '',
     serviceAccountEmail: env['GOOGLE_SERVICE_ACCOUNT_EMAIL'] || '',
-    // Private keys pasted into .env keep their newlines escaped as literal "\n".
-    privateKey: (env['GOOGLE_PRIVATE_KEY'] || '').replace(/\\n/g, '\n'),
+    // Private keys from .env / hosting dashboards may need PEM normalization.
+    privateKey: normalizePrivateKey(env['GOOGLE_PRIVATE_KEY'] || ''),
   },
 } as const;
 
