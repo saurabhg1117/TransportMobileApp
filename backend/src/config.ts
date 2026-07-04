@@ -30,3 +30,16 @@ export const config = {
 export const useGoogleSheets = Boolean(
   config.google.sheetId && config.google.serviceAccountEmail && config.google.privateKey
 );
+
+/** Lists which Google env vars are still missing (for /health diagnostics). */
+export function getGoogleConfigStatus(): { ready: boolean; missing: string[] } {
+  const missing: string[] = [];
+  if (!config.google.sheetId) missing.push('GOOGLE_SHEET_ID');
+  if (!config.google.serviceAccountEmail) {
+    missing.push('GOOGLE_SERVICE_ACCOUNT_JSON_B64 (or GOOGLE_SERVICE_ACCOUNT_EMAIL)');
+  }
+  if (!config.google.privateKey) {
+    missing.push('GOOGLE_SERVICE_ACCOUNT_JSON_B64 (or GOOGLE_PRIVATE_KEY)');
+  }
+  return { ready: missing.length === 0, missing };
+}

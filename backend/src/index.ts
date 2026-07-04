@@ -1,6 +1,6 @@
 import express, { type Request, type Response } from 'express';
 import cors from 'cors';
-import { config, useGoogleSheets } from './config.js';
+import { config, useGoogleSheets, getGoogleConfigStatus } from './config.js';
 import { getStore } from './lib/store/index.js';
 import authRoutes from './routes/authRoutes.js';
 import driverRoutes from './routes/driverRoutes.js';
@@ -23,6 +23,17 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 app.get('/health', async (_req: Request, res: Response) => {
+  if (process.env['NODE_ENV'] === 'production' && config.google.sheetId && !useGoogleSheets) {
+    const { missing } = getGoogleConfigStatus();
+    res.status(503).json({
+      status: 'error',
+      error: 'Google Sheets credentials not configured',
+      missing,
+      hint: 'Add GOOGLE_SERVICE_ACCOUNT_JSON_B64 in Belmo → Environment, then Redeploy',
+    });
+    return;
+  }
+
   try {
     const store = await getStore();
     res.json({ status: 'ok', store: store.kind });

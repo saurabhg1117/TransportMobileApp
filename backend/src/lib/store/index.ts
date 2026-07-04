@@ -1,4 +1,4 @@
-import { config, useGoogleSheets } from '../../config.js';
+import { config, useGoogleSheets, getGoogleConfigStatus } from '../../config.js';
 import type { DataStore } from './DataStore.js';
 import { GoogleSheetsStore } from './GoogleSheetsStore.js';
 import { JsonFileStore } from './JsonFileStore.js';
@@ -14,6 +14,16 @@ function create(): DataStore {
       privateKey: config.google.privateKey,
     });
   }
+
+  // Production with a sheet id configured should use Sheets, not local JSON.
+  if (process.env['NODE_ENV'] === 'production' && config.google.sheetId) {
+    const { missing } = getGoogleConfigStatus();
+    throw new Error(
+      `Google Sheets credentials incomplete. Missing: ${missing.join(', ')}. ` +
+        'Add GOOGLE_SERVICE_ACCOUNT_JSON_B64 in Belmo Environment, then Redeploy.',
+    );
+  }
+
   return new JsonFileStore(config.dataFile);
 }
 

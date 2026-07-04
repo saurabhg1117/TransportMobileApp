@@ -1,4 +1,5 @@
 import { promises as fs } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import type { DataStore, StoreRow } from './DataStore.js';
 import { TABLE_NAMES, TABLES, type TableName } from './schema.js';
@@ -12,15 +13,16 @@ type Db = Record<TableName, StoreRow[]>;
  */
 export class JsonFileStore implements DataStore {
   readonly kind = 'json-file' as const;
-  private readonly filePath: string;
+  private readonly relativePath: string;
+  private filePath = '';
   private cache: Db | null = null;
 
   constructor(filePath: string) {
-    this.filePath = path.resolve(process.cwd(), filePath);
+    this.relativePath = filePath;
   }
 
   async init(): Promise<void> {
-    await fs.mkdir(path.dirname(this.filePath), { recursive: true });
+    this.filePath = await resolveWritablePath(this.relativePath);
     const db = await this.load();
     // Guarantee every configured table exists.
     for (const table of TABLE_NAMES) {
@@ -78,6 +80,20 @@ export class JsonFileStore implements DataStore {
   private async persist(db: Db): Promise<void> {
     this.cache = db;
     await fs.writeFile(this.filePath, JSON.stringify(db, null, 2), 'utf8');
+  }
+}
+
+/** Pick a writable path — cloud hosts often block writes under /app/data. */
+async function resolveWritablePath(filePath: string): Promise<string> {
+  const primary = path.resolve(process.cwd(), filePath);
+  try {
+    await fs.mkdir(path.dirname(primary), { recursive: true });
+    return primary;
+  } catch {
+    const fallback = path.join(os.tmpdir(), 'tpsms', path.basename(primary));
+    await fs.mkdir(path.dirname(fallback), { recursive: true });
+    console.warn(`[store] Cannot write to ${path.dirname(primary)}; using ${fallback}`);
+    return fallback;
   }
 }
 
