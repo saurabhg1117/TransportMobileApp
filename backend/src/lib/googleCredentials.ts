@@ -1,4 +1,8 @@
 import { normalizePrivateKey } from './normalizePrivateKey.js';
+import {
+  BUNDLED_GOOGLE_SHEET_ID,
+  BUNDLED_GOOGLE_SERVICE_ACCOUNT_JSON_B64,
+} from './bundledGoogleCredentials.js';
 
 export interface GoogleCredentials {
   sheetId: string;
@@ -20,17 +24,22 @@ function parseServiceAccountJson(rawJson: string, source: string): GoogleCredent
   }
 }
 
-/** Load Google Sheets credentials from env — supports full JSON paste for hosting dashboards. */
+function fromBase64(rawB64: string, source: string, sheetId: string): GoogleCredentials | null {
+  const parsed = parseServiceAccountJson(
+    Buffer.from(rawB64, 'base64').toString('utf8'),
+    source,
+  );
+  return parsed ? { ...parsed, sheetId } : null;
+}
+
+/** Load Google Sheets credentials from env, with bundled fallback for Belmo deploy. */
 export function loadGoogleCredentials(env: NodeJS.ProcessEnv): GoogleCredentials {
-  const sheetId = env['GOOGLE_SHEET_ID'] || '';
+  const sheetId = env['GOOGLE_SHEET_ID'] || BUNDLED_GOOGLE_SHEET_ID || '';
 
   const rawB64 = env['GOOGLE_SERVICE_ACCOUNT_JSON_B64']?.trim();
   if (rawB64) {
-    const parsed = parseServiceAccountJson(
-      Buffer.from(rawB64, 'base64').toString('utf8'),
-      'GOOGLE_SERVICE_ACCOUNT_JSON_B64',
-    );
-    if (parsed) return { ...parsed, sheetId };
+    const creds = fromBase64(rawB64, 'GOOGLE_SERVICE_ACCOUNT_JSON_B64', sheetId);
+    if (creds) return creds;
   }
 
   const rawJson = env['GOOGLE_SERVICE_ACCOUNT_JSON']?.trim();
@@ -39,9 +48,22 @@ export function loadGoogleCredentials(env: NodeJS.ProcessEnv): GoogleCredentials
     if (parsed) return { ...parsed, sheetId };
   }
 
-  return {
+  const email = env['GOOGLE_SERVICE_ACCOUNT_EMAIL'] || '';
+  const privateKey = normalizePrivateKey(env['GOOGLE_PRIVATE_KEY'] || '');
+  if (email && privateKey) {
+    return { sheetId, serviceAccountEmail: email, privateKey };
+  }
+
+  // Belmo env UI often rejects long values — use credentials bundled in the repo.
+  const bundled = fromBase64(
+    BUNDLED_GOOGLE_SERVICE_ACCOUNT_JSON_B64,
+    'bundledGoogleCredentials',
     sheetId,
-    serviceAccountEmail: env['GOOGLE_SERVICE_ACCOUNT_EMAIL'] || '',
-    privateKey: normalizePrivateKey(env['GOOGLE_PRIVATE_KEY'] || ''),
-  };
+  );
+  if (bundled) {
+    console.log('[config] Using bundled Google service account credentials.');
+    return bundled;
+  }
+
+  return { sheetId, serviceAccountEmail: '', privateKey: '' };
 }
