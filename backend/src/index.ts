@@ -22,7 +22,17 @@ app.get('/', (_req: Request, res: Response) => {
   res.json({ message: 'TPSMS backend is running', version: '1.0.0' });
 });
 
-app.get('/health', async (_req: Request, res: Response) => {
+/** Fast liveness probe — must return 200 quickly for Belmo/HostingGuru routing. */
+app.get('/health', (_req: Request, res: Response) => {
+  res.json({
+    status: 'ok',
+    version: '1.0.0',
+    storeConfigured: useGoogleSheets,
+  });
+});
+
+/** Readiness probe — verifies the data store (Google Sheets) is reachable. */
+app.get('/ready', async (_req: Request, res: Response) => {
   if (process.env['NODE_ENV'] === 'production' && config.google.sheetId && !useGoogleSheets) {
     const { missing } = getGoogleConfigStatus();
     res.status(503).json({
