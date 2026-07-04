@@ -1,9 +1,10 @@
 import dotenv from 'dotenv';
-import { normalizePrivateKey } from './lib/normalizePrivateKey.js';
+import { loadGoogleCredentials } from './lib/googleCredentials.js';
 
 dotenv.config();
 
 const env = process.env;
+const google = loadGoogleCredentials(env);
 
 export const config = {
   port: Number(env['PORT'] ?? 5000),
@@ -22,12 +23,7 @@ export const config = {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
-  google: {
-    sheetId: env['GOOGLE_SHEET_ID'] || '',
-    serviceAccountEmail: env['GOOGLE_SERVICE_ACCOUNT_EMAIL'] || '',
-    // Private keys from .env / hosting dashboards may need PEM normalization.
-    privateKey: normalizePrivateKey(env['GOOGLE_PRIVATE_KEY'] || ''),
-  },
+  google,
 } as const;
 
 /** True when all Google Sheets credentials are present, so the Sheets store is used. */
