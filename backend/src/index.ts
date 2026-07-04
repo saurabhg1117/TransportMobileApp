@@ -42,14 +42,17 @@ app.use((_req: Request, res: Response) => {
 });
 
 async function start(): Promise<void> {
-  // Initialize the data store up front so header rows / sheets exist and any
-  // credential problems surface at boot rather than on the first request.
-  const store = await getStore();
-  console.log(`Data store: ${store.kind}${useGoogleSheets ? '' : ' (local fallback)'}`);
-
   app.listen(config.port, () => {
     console.log(`TPSMS backend running on http://localhost:${config.port}`);
   });
+
+  // Init store after listen so hosting health checks pass even if Sheets creds are wrong.
+  try {
+    const store = await getStore();
+    console.log(`Data store: ${store.kind}${useGoogleSheets ? '' : ' (local fallback)'}`);
+  } catch (err) {
+    console.error('Data store init failed (API will return errors until fixed):', err);
+  }
 }
 
 start().catch((err) => {

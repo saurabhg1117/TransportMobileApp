@@ -1,6 +1,5 @@
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { normalizePrivateKey } from '../lib/normalizePrivateKey.js';
 
 /**
  * Prints Belmo-ready env values from a service-account JSON file.
@@ -15,22 +14,22 @@ if (!existsSync(keyPath)) {
   process.exit(1);
 }
 
-const key = JSON.parse(readFileSync(keyPath, 'utf8')) as {
-  client_email?: string;
-  private_key?: string;
-};
+const raw = readFileSync(keyPath, 'utf8');
+const key = JSON.parse(raw) as { client_email?: string; private_key?: string };
 
 const email = key.client_email?.trim();
-const privateKey = normalizePrivateKey(key.private_key ?? '');
-
-if (!email || !privateKey) {
+if (!email || !key.private_key) {
   console.error('Invalid JSON: missing client_email or private_key');
   process.exit(1);
 }
 
-console.log('\nCopy these into Belmo → Environment:\n');
-console.log(`GOOGLE_SERVICE_ACCOUNT_EMAIL=${email}`);
-console.log('GOOGLE_PRIVATE_KEY=');
-console.log(privateKey);
-console.log('\nTip: paste GOOGLE_PRIVATE_KEY as multiple lines (BEGIN ... END).');
-console.log('Do NOT wrap in extra quotes. Then click Redeploy.\n');
+const b64 = Buffer.from(raw.trim(), 'utf8').toString('base64');
+
+console.log('\n=== Belmo Environment (copy these) ===\n');
+console.log('GOOGLE_SHEET_ID=1otvWmNDE5zJCWwVN_mu9B1bNZ_sy-rCIz1NyWlbOHvk');
+console.log('NODE_ENV=production');
+console.log('JWT_SECRET=<paste a long random string>');
+console.log('\n--- Easiest: one-line base64 (recommended) ---\n');
+console.log(`GOOGLE_SERVICE_ACCOUNT_JSON_B64=${b64}`);
+console.log('\nRemove GOOGLE_PRIVATE_KEY and GOOGLE_SERVICE_ACCOUNT_EMAIL if present.');
+console.log('Then Save → Redeploy → open /health\n');
