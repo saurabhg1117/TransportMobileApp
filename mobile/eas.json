@@ -6,19 +6,21 @@
   "build": {
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "android": {
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://YOUR-BELMO-URL/api"
+        "EXPO_PUBLIC_API_URL": "https://transportmobileapp-b45c.onbelmo.uk/api"
       }
     },
     "production": {
+      "channel": "production",
       "android": {
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://YOUR-BELMO-URL/api"
+        "EXPO_PUBLIC_API_URL": "https://transportmobileapp-b45c.onbelmo.uk/api"
       }
     }
   }

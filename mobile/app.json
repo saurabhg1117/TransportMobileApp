@@ -12,11 +12,26 @@
     "android": {
       "package": "com.tpsms.mobile"
     },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/0fcbabed-5e70-4497-8d52-19f3c7312f1c",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "web": {
       "bundler": "metro"
     },
     "plugins": [
       "expo-sharing"
-    ]
+    ],
+    "extra": {
+      "apiUrl": "",
+      "eas": {
+        "projectId": "0fcbabed-5e70-4497-8d52-19f3c7312f1c"
+      }
+    },
+    "owner": "saurabhg1117"
   }
 }

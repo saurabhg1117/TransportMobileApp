@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import api from './src/api';
 import { getToken } from './src/auth';
+import { applyRemoteUpdates } from './src/updates';
 import { colors } from './src/theme';
 import type { RootStackParamList } from './src/navigation';
 
@@ -34,6 +35,8 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
+        await applyRemoteUpdates();
+
         const token = await getToken();
         if (token) {
           // Validate the stored token; if valid, skip the login screen.
