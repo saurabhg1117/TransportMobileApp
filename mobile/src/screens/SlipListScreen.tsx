@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
@@ -9,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import api, { errorMessage } from '../api';
+import { errorMessage, getWithRetry } from '../api';
 import { getStoredUser } from '../auth';
 import { colors, g, radius, spacing } from '../theme';
 import { formatMoney } from '../slip';
@@ -25,25 +26,38 @@ function creatorLabel(slip: PaymentSlip): string {
 export default function SlipListScreen({ navigation }: ScreenProps<'SlipList'>) {
   const [slips, setSlips] = useState<PaymentSlip[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const loadedOnceRef = useRef(false);
 
   useEffect(() => {
     getStoredUser().then((user) => setIsAdmin(user?.role === 'SUPER_ADMIN'));
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (pull = false) => {
+    if (pull) {
+      setRefreshing(true);
+    } else if (!loadedOnceRef.current) {
+      setLoading(true);
+    }
+
     try {
-      const res = await api.get('/payment-slips');
-      const list = (res.data.slips as PaymentSlip[]).sort((a, b) =>
+      const data = await getWithRetry<{ slips: PaymentSlip[] }>('/payment-slips');
+      const list = [...data.slips].sort((a, b) =>
         (b.createdAt || '').localeCompare(a.createdAt || ''),
       );
       setSlips(list);
+      setError(null);
+      loadedOnceRef.current = true;
     } catch (err) {
-      console.warn(errorMessage(err));
+      const msg = errorMessage(err, 'Could not load payment slips.');
+      console.warn(msg);
+      if (!loadedOnceRef.current) setError(msg);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -95,6 +109,25 @@ export default function SlipListScreen({ navigation }: ScreenProps<'SlipList'>) 
     </TouchableOpacity>
   );
 
+  const emptyMessage = () => {
+    if (error) {
+      return (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorTitle}>Could not load slips</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.errorHint}>The server may be waking up. Pull down to refresh or tap below.</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => load(true)} activeOpacity={0.85}>
+            <Text style={styles.retryBtnText}>Try again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    if (query) {
+      return <Text style={styles.empty}>No slips match your search.</Text>;
+    }
+    return <Text style={styles.empty}>No slips yet. Tap + to create one.</Text>;
+  };
+
   return (
     <View style={g.screen}>
       <View style={styles.searchWrap}>
@@ -107,17 +140,26 @@ export default function SlipListScreen({ navigation }: ScreenProps<'SlipList'>) 
         />
       </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xxl }} />
+      {loading && slips.length === 0 ? (
+        <View style={styles.loadingBox}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingHint}>Loading slips…</Text>
+        </View>
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={(s) => s.id}
           renderItem={renderItem}
-          contentContainerStyle={{ padding: spacing.lg, paddingBottom: 96 }}
-          ListEmptyComponent={
-            <Text style={styles.empty}>{query ? 'No slips match your search.' : 'No slips yet. Tap + to create one.'}</Text>
+          contentContainerStyle={{ padding: spacing.lg, paddingBottom: 96, flexGrow: 1 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => load(true)}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
           }
+          ListEmptyComponent={emptyMessage}
         />
       )}
 
@@ -140,6 +182,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     color: colors.text,
   },
+  loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.md },
+  loadingHint: { color: colors.muted, fontSize: 14 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   slipNo: { fontSize: 17, fontWeight: '800', color: colors.primaryDark },
   badge: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.sm },
@@ -158,6 +202,25 @@ const styles = StyleSheet.create({
   freight: { color: colors.text, fontWeight: '600' },
   balance: { color: colors.primary, fontWeight: '800' },
   empty: { textAlign: 'center', color: colors.muted, marginTop: spacing.xxl },
+  errorBox: {
+    marginTop: spacing.xl,
+    padding: spacing.lg,
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  errorTitle: { fontSize: 16, fontWeight: '700', color: colors.ink, textAlign: 'center' },
+  errorText: { color: colors.muted, textAlign: 'center', marginTop: spacing.sm, lineHeight: 20 },
+  errorHint: { color: colors.muted, textAlign: 'center', marginTop: spacing.sm, fontSize: 13 },
+  retryBtn: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  retryBtnText: { color: colors.white, fontWeight: '700', fontSize: 15 },
   fab: {
     position: 'absolute',
     right: spacing.lg,

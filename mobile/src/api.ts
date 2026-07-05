@@ -7,6 +7,34 @@ const api = axios.create({
   timeout: 15000,
 });
 
+/** Longer timeout for Google Sheets–backed list endpoints (cold start + multiple sheet reads). */
+export const LIST_REQUEST_TIMEOUT_MS = 45000;
+
+/**
+ * GET with automatic retry — helps when Belmo cold-starts or Sheets is slow.
+ */
+export async function getWithRetry<T>(
+  url: string,
+  options?: { timeout?: number; retries?: number },
+): Promise<T> {
+  const timeout = options?.timeout ?? LIST_REQUEST_TIMEOUT_MS;
+  const maxAttempts = (options?.retries ?? 1) + 1;
+  let lastErr: unknown;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const res = await api.get<T>(url, { timeout });
+      return res.data;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < maxAttempts - 1) {
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 api.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem('token');
   if (token) {
